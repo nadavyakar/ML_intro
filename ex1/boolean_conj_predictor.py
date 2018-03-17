@@ -11,10 +11,6 @@ training_examples = np.loadtxt(sys.argv[1])
 X = training_examples[:,:-1]
 Y = training_examples[:,-1]
 
-if len(X)==0:
-	print "ERROR: empty dataset! terminating script!"
-	sys.exit(1)
-
 #consistency algo
 h=dict([ (x,{True,False}) for x in range(len(X[0])) ])
 for t in range(len(X)):
@@ -25,8 +21,8 @@ for t in range(len(X)):
 				if False in h[i]:
 					h[i].remove(False)
 			else:
-                                if True in h[i]:
-                                        h[i].remove(True)
+                               	if True in h[i]:
+                                       	h[i].remove(True)
 
 #print results to file
 out_str=""
@@ -35,6 +31,7 @@ for x in sorted(h.keys()):
 		out_str+="x{},".format(x+1)
 	if False in h[x]:
                 out_str+="not(x{}),".format(x+1)
-if len(out_str)>0:
-	with open('output.txt','w') as f:
-		f.write(out_str[:-1])
+if len(out_str)==0:
+	out_str=" "
+with open('output.txt','w') as f:
+	f.write(out_str[:-1])
