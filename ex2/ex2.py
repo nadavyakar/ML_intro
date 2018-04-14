@@ -2,6 +2,7 @@
 import numpy as np
 from random import shuffle
 from math import exp, sqrt, pi, pow
+import matplotlib.pyplot as plt
 nclass=3
 nsamples_per_class=100
 epocs=1
@@ -16,7 +17,7 @@ def generate_training_set():
     training_set=[]
     n=nsamples_per_class
     for a in range(1,nclass+1):
-        training_set+=zip([a]*n,np.random.normal(2a, 1, n))
+        training_set+=zip([a]*n,np.random.normal(2*a, 1, n))
     shuffle(training_set)
     return training_set
 def generate_dummy_training():
@@ -31,7 +32,7 @@ def upadte(W,x,y):
     for i in range(nclass):
         W[i] -= learning_rate*derivative[i]
 def train_logistic_regression(train):
-    W=np.matrix([[0]*2]*nclass)
+    W=np.matrix([[.0]*2]*nclass)
     for e in range(epocs):
         for x,y in train:
             upadte(W, np.array([x,1]), y)
@@ -44,4 +45,7 @@ train=generate_dummy_training()
 p_lr=train_logistic_regression(train)
 
 # plot graph
-plot 0..10 for p_lr & p_actual
+t = np.linspace(0., 10., num=100)
+plt.plot(t, t, 'bs')
+plt.show()
+#plot 0..10 for p_lr & p_actual
