@@ -6,15 +6,13 @@ pic_size=784
 nclasses=10
 epocs=1
 learning_rate=0.01
-hidden_layer_size=pic_size
+layer_sizes=[pic_size,20,nclasses]
 batch_size=1
 validation_ratio=.2
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
 
 def init_model():
-    W1=np.matrix([[0.5] * (pic_size+1)] * hidden_layer_size)
-    W2=np.matrix([[0.5] * (hidden_layer_size+1) ] * nclasses)
-    return (W1,W2)
+    return [ np.matrix([[0.5] * (layer_sizes[l]+1)] * layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
 class Sigmoid:
     def __call__(self, IN_VEC):
         X=[]
@@ -32,7 +30,7 @@ class Softmax:
         return [exp(v) / denominator for v in IN_VEC ]
     def derivative(self, V, Y):
         return [v-y for v,y in zip(V,Y)]
-activation=[Sigmoid(), Softmax()]
+activation=[None,Sigmoid(), Softmax()]
 def loss(V,y):
     return -log(V[y])
 def split_to_valid(train_x,train_y):
@@ -41,32 +39,28 @@ def split_to_valid(train_x,train_y):
     train_size=len(data_set)-int(validation_ratio*len(data_set))
     return data_set[:train_size],data_set[train_size:]
 def fw_prop(W,X):
-    V={}
-    #in layer to hidden
-    l1_in_vector=np.dot(W[0],(X+[1]))
-    V[0]=activation[0](l1_in_vector.reshape(l1_in_vector.shape[1],-1))
-    #hidden to out layer
-    l2_in_vector=np.dot(W[1],(V[0]+[1]))
-    V[1]=activation[1](l2_in_vector.reshape(l2_in_vector.shape[1],-1))
-    return V
+    out_prev = X
+    out=[out_prev]
+    for i in range(len(W)):
+        x_in = np.dot(W[i],np.append(out_prev,1))
+        out_prev=activation[i+1](x_in.reshape(x_in.shape[1],-1))
+        out.append(np.array(out_prev))
+    return out
 def bk_prop(W,X,Y):
-    V=fw_prop(W,X)
-    #update weights to last layer
-    err = activation[1].derivative(V[1],Y)
-    derivative = np.dot(err, V[0])
-    W[1]-=learning_rate*derivative
-    #update weights to hidden layer
-    err=np.dot(W[1],err)
-    g=np.dot(activation[0].derivative(V[0]),err)
-    derivative = np.dot(g, X+[1])
-    W[0]-=learning_rate*derivative
+    out=fw_prop(W,X)
+    err=Y
+    for l in list(reversed(range(len(layer_sizes))))[:-1]:
+        loss_derivative_in = activation[l].derivative(out[l], err) # G_l = loss_derivative_z
+        loss_derivative_W_l = np.outer(loss_derivative_in, np.append(out[l-1],1)) # calculate a matrix of the same shape as W[l] used to update it
+        err=np.dot(np.transpose(W[l-1]), loss_derivative_in) # pass the delta of layer l neurons down to layer l-1 neurons
+        W[l-1]-=learning_rate*loss_derivative_W_l # update layer l-1 to layer l weights
 def validate(W,valid):
     sum_loss= 0.0
     correct=0.0
     for X, y in valid:
-        V = fw_prop(W,X)
-        sum_loss += loss(V[-1],y)
-        if V[-1].index(max(V[-1])) == y:
+        out = fw_prop(W,X)
+        sum_loss += loss(out[-1],y)
+        if out[-1].index(max(out[-1])) == y:
             correct += 1
     return sum_loss/ len(valid),correct/ len(valid)
 def train(train_x,train_y):
