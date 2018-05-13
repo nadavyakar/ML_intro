@@ -10,14 +10,10 @@ pic_size=784
 nclasses=10
 batch_size=1
 validation_ratio=.2
-# epocs=[50,100,200,300]
-# learning_rates=[0.05,1]
-# architectures=[[pic_size,10,nclasses],[pic_size,100,nclasses],[pic_size,400,nclasses]]
-# weight_init_boundries=[0.08,0.5]
-epocs=[1,2]
-learning_rates=[1]
-architectures=[[pic_size,10,nclasses]]
-weight_init_boundries=[0.08]
+epocs=[50,100,200,300]
+learning_rates=[0.05,1]
+architectures=[[pic_size,10,nclasses],[pic_size,100,nclasses],[pic_size,400,nclasses]]
+weight_init_boundries=[0.08,0.5]
 
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
 rnd.seed(1)
@@ -93,11 +89,9 @@ def validate(W,valid):
             correct += 1
     return sum_loss/ len(valid),correct/ len(valid)
 def train(W,train_x,train_y,params):
-    epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry = params
+    starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
     train,valid=split_to_valid(train_x,train_y)
-    avg_loss_list=[]
-    avg_acc_list=[]
-    for e in range(epoc):
+    for e in range(starting_epoc,ending_epoc):
         rnd.shuffle(train)
         for X,y in train:
             bk_prop(W,X,Y[y],len(layer_sizes),learning_rate)
@@ -105,12 +99,12 @@ def train(W,train_x,train_y,params):
         avg_loss_list.append(avg_loss)
         avg_acc_list.append(acc)
         logging.error("epoc {} avg loss {} accuracy {}".format(e,avg_loss,acc))
-    epocs_list=list(range(epoc))
+    epocs_list=list(range(ending_epoc))
     plt.plot(epocs_list,avg_loss_list,'bs',epocs_list,avg_acc_list,'rs')
     plt.xlabel("epocs")
-    plt.savefig("/home/nadav/data/perf.e_{}.lr_{}.hs_{}.bs_{}.w_{}.png".format(epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
+    plt.savefig("/home/nadav/data/perf.e_{}.lr_{}.hs_{}.bs_{}.w_{}.png".format(ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
     plt.clf()
-    return W
+    return W, avg_loss_list, avg_acc_list
 def test_and_write(model,test_x,params):
     '''
     :param model: a learned weight matrices. the 1st layer W matrix width=|X|=pic_size & high=hidden_layer_size
@@ -118,22 +112,22 @@ def test_and_write(model,test_x,params):
     :param test_x:
     :return:
     '''
-    epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry = params
+    starting_epoc, epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
     with open("/home/nadav/data/test.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry), 'w') as f:
         for X in test_x:
             f.write("{}\n".format(fw_prop(model,X)[-1].argmax()))
 #train_x = np.loadtxt("train_x")
 #train_y = np.loadtxt("train_y")
 #test_x = np.loadtxt("test_x")
-train_x = np.loadtxt("train_x_top_10")
-train_y = np.loadtxt("train_y_top_10")
-test_x = np.loadtxt("test_x_top_10")
+# train_x = np.loadtxt("train_x_top_10")
+# train_y = np.loadtxt("train_y_top_10")
+# test_x = np.loadtxt("test_x_top_10")
 
 #with open(r"data.txt", "wb") as f:
 #    f.write(pickle.dumps((train_x, train_y, test_x)))
 #sys.exit(0)
-# data = open(r"/home/nadav/data/data.txt", "rb").read()
-# train_x,train_y,test_x = pickle.loads(data)
+data = open(r"/home/nadav/data/data.txt", "rb").read()
+train_x,train_y,test_x = pickle.loads(data)
 train_x=[[pixel/255 for pixel in pic] for pic in train_x]
 
 for weight_init_boundry in weight_init_boundries:
@@ -141,11 +135,16 @@ for weight_init_boundry in weight_init_boundries:
         for learning_rate in learning_rates:
             params=layer_sizes, weight_init_boundry
             W = init_model(params)
-            for epoc in epocs:
-                params = epoc, learning_rate, layer_sizes[1], batch_size, weight_init_boundry
-                W=train(W,train_x,train_y,params)
-                with open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry),"wb") as f:
-                    f.write(pickle.dumps(W))
+            avg_loss_list = []
+            avg_acc_list = []
+            starting_epoc=0
+            for ending_epoc in epocs:
+                params = starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list
+                logging.error("start training with params: e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
+                W, avg_loss_list, avg_acc_list =train(W,train_x,train_y,params)
+                starting_epoc = ending_epoc
+                with open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry),"wb") as f:
+                    f.write(pickle.dumps((W,avg_loss_list, avg_acc_list)))
                 #pW=open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(epocs,learning_rate,layer_sizes[1],batch_size,weight_init_boundry)).read()
-                #W=pickle.loads(pW)
+                #W,avg_loss_list, avg_acc_list=pickle.loads(pW)
                 test_and_write(W,test_x,params)
