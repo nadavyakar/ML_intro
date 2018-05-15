@@ -12,7 +12,7 @@ batch_size=1
 validation_ratio=0
 epocs=[300]
 learning_rates=[0.01]
-architectures=[[pic_size,nclasses]]
+architectures=[[pic_size,10,nclasses]]
 weight_init_boundries=[0.5]
 from math import exp, sqrt, pi, pow
 
@@ -25,6 +25,17 @@ logging.basicConfig(filename="/home/nadav/data/nn.log",level=logging.ERROR)
 def init_model(params):
     layer_sizes, weight_init_boundry = params
     return [ np.matrix([[0.5] * (layer_sizes[l]+1)] * layer_sizes[l+1]) for l in range(len(layer_sizes)-1) ]
+class ActivationSigmoid:
+    def __call__(self, IN_VEC):
+        X=[]
+        for val in IN_VEC:
+            try:
+                X.append(1. / (1. + exp(-val)))
+            except Exception:
+                X.append(0. if val<0 else 1.)
+        return X
+    def derivative(self, out):
+        return (1.0 - out) * out
 class ActivationSoftmax:
     def __call__(self, IN_VEC):
         denominator = sum([exp(v) for v in IN_VEC])
@@ -36,7 +47,7 @@ class ActivationInputIdentity:
         return IN_VEC
     def derivative(self, out):
         return np.array([.0,])
-activation=[ActivationInputIdentity(), ActivationSoftmax()]
+activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
 class LossNegLogLikelihood:
     def __call__(self, V, y):
         return -log(V[int(y)])
@@ -61,14 +72,14 @@ def fw_prop(W,X):
 def bk_prop(W,X,Y,nlayers,learning_rate):
     out=fw_prop(W,X)
     err=loss.derivative_z(out[-1], Y)
-    loss_derivative_in = err
+    dLdZ = err # Z is a vec of sums of multipications of weights with prev layer output to last layer neurons
     for l in list(reversed(range(nlayers)))[:-1]:
-        out_prev=np.append(out[l-1],1.)
-        loss_derivative_W_l = np.outer(loss_derivative_in, out_prev) # calculate a matrix of the same shape as W[l] used to update it
-        err=np.squeeze(np.asarray(np.dot(np.transpose(W[l-1]), loss_derivative_in))) # pass the delta of layer l neurons down to layer l-1 neurons
-        W[l-1]-=learning_rate*loss_derivative_W_l # update layer l-1 to layer l weights
+        out_prev=np.append(out[l-1],1.) # out_prev = V(l-1)
+        dLdW = np.outer(dLdZ, out_prev) # calculate a matrix of the same shape as W[l] used to update it
+        err=np.squeeze(np.asarray(np.dot(np.transpose(W[l-1]), dLdZ))) # pass the delta of layer l neurons down to layer l-1 neurons
+        W[l-1]-=learning_rate*dLdW # update layer l-1 to layer l weights
         if l>1:
-            loss_derivative_in = activation[l-1].derivative(out_prev)[:-1]*err[:-1] # G_l = loss_derivative_z
+            dLdZ = activation[l-1].derivative(out_prev)[:-1]*err[:-1] # G_l
 def validate(W,valid):
     sum_loss= 0.0
     correct=0.0
@@ -98,8 +109,9 @@ def train(W,train_x,train_y,params):
         '''
         return the trained probability
         '''
-        X = [x,1]
-        return exp(np.dot(W[-1][y-1,:],X)) / sum([ exp(k) for k in np.asarray(np.dot(W[-1], X)).reshape(-1) ])
+        X = np.array([x])
+        return fw_prop(W,X)[-1][y-1]
+            # exp(np.dot(W[-1][y-1,:],X)) / sum([ exp(k) for k in np.asarray(np.dot(W[-1], X)).reshape(-1) ])
     return W, avg_loss_list, avg_acc_list,p
 
 def f(x,y):
