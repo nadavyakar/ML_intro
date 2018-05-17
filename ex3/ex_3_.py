@@ -8,15 +8,16 @@ import logging
 
 class ActivationSigmoid:
     def __call__(self, IN_VEC):
-        X=[]
-        for val in IN_VEC:
-            try:
-                X.append(1. / (1. + exp(-val)))
-            except Exception:
-                x = 0. if val<0 else 1.
-                X.append(x)
-                logging.debug("sigmoid for {} is {}".format(len(X)-1,x))
-        return np.array(X)
+        return 1. / (1. + np.exp(-IN_VEC))
+        # X=[]
+        # for val in IN_VEC:
+        #     try:
+        #         X.append(1. / (1. + np.exp(-val)))
+        #     except Exception:
+        #         x = 0. if val<0 else 1.
+        #         X.append([x])
+        #         logging.debug("sigmoid for {} is {}".format(len(X)-1,x))
+        # return np.matrix(X)
     def derivative(self, out):
         return (1.0 - out) * out
 class ActivationSoftmax:
@@ -31,14 +32,14 @@ class ActivationInputIdentity:
     def derivative(self, out):
         return np.array([.0,])
 
-pic_size=784
-nclasses=10
-train_x = np.loadtxt("train_x_top_100")
-train_y = np.loadtxt("train_y_top_100")
-test_x = np.loadtxt("train_x_top_10")
-architectures=[[pic_size,50,nclasses]]
-activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
-tst_name="top_100"
+# pic_size=784
+# nclasses=10
+# train_x = np.loadtxt("train_x_top_100")
+# train_y = np.loadtxt("train_y_top_100")
+# test_x = np.loadtxt("train_x_top_10")
+# architectures=[[pic_size,50,nclasses]]
+# activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+# tst_name="top_100"
 
 # fails:
 # pic_size=2
@@ -75,33 +76,37 @@ tst_name="top_100"
 # tst_name="identity"
 
 # success:
-# nclasses=2
-# pic_size=2
-# train_x=[[0,1],
-#          [1,0]]
-# train_y=[0,1]
-# architectures=[[pic_size,nclasses]]
-# activation=[ActivationInputIdentity(), ActivationSoftmax()]
-# tst_name="identity"
+nclasses=2
+pic_size=2
+train_x=[np.array([0,1]),
+         np.array([1,0])]
+train_y=[0,1]
+architectures=[[pic_size,2, nclasses]]
+activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+tst_name="identity"
 
 # train_x=[np.array(X) for X in train_x]
 
 batch_size=1
 validation_ratio=.2
-epocs=[100]
-learning_rates=[0.01]
-weight_init_boundries=[0.05]
+epocs=[20]
+learning_rates=[0.05]
+weight_init_boundries=[0.08]
 from math import exp
 
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
 # rnd.seed(1)
 
 # logger=logging.getLogger(__name__)
-logging.basicConfig(filename="/home/nadav/data/nn.log",level=logging.ERROR)
+# logging.basicConfig(filename="/home/nadav/data/nn.log",level=logging.ERROR)
 
 def init_model(params):
     layer_sizes, weight_init_boundry = params
     return [ np.matrix([[rnd.uniform(-weight_init_boundry,weight_init_boundry) for i in range(layer_sizes[l]+1)] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ]
+def init_model_and_b(params):
+    layer_sizes, weight_init_boundry = params
+    return [ np.matrix([[rnd.uniform(-weight_init_boundry,weight_init_boundry) for i in range(layer_sizes[l])] for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ], \
+           [ np.matrix([rnd.uniform(-weight_init_boundry,weight_init_boundry) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ] #B
 class LossNegLogLikelihood:
     def __call__(self, V, y):
         return -log(V[int(y)])
@@ -113,6 +118,18 @@ def split_to_valid(train_x,train_y):
     rnd.shuffle(data_set)
     train_size=len(data_set)-int(validation_ratio*len(data_set))
     return data_set[:train_size],data_set[:train_size]
+sigmoid = ActivationSigmoid()
+def fprop(W,B,X):
+    W1=W[0]
+    b1=B[0]
+    W2=W[1]
+    b2=B[1]
+    x=X
+    z1 = np.dot(W1, x) + b1
+    h1 = sigmoid(z1)
+    z2 = np.dot(W2, h1.T) + b2
+    h2 = sigmoid(z2)
+    return [h1,h2]
 def fw_prop(W,X):
     IN = X
     layers_out=[IN]
@@ -123,9 +140,23 @@ def fw_prop(W,X):
         logging.debug("fw prop layer {}:\nin\n{}\n\nW\n{}\n\nW*in\n{}\n\nout\n{}\n".format(i,IN,W[i],WdotIN,OUT))
         IN=OUT
     return layers_out
+def bprop(W,B,X,Y,learning_rate):
+    out_list=fprop(W,B,X)
+    h2 = out_list[1]
+    h1 = out_list[0]
+    y=Y
+    dz2 = (h2 - y)  # dL/dz2
+    dW2 = np.dot(dz2, h1.T)  # dL/dz2 * dz2/dw2
+    db2 = dz2  # dL/dz2 * dz2/db2
+    dz1 = np.dot(W[1].T,(h2 - y)) * h1.T * (1 - h1.reshape(-1))  # dL/dz2 * dz2/dh1 * dh1/dz1
+    dW1 = np.dot(dz1, X.T)  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/dw1
+    db1 = dz1  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/db1
+    W[1] = W[1] - learning_rate*dW2
+    B[1] = B[1] - learning_rate*db2
+    W[0] = W[0]-learning_rate*dW1
+    B[0] = B[0] - learning_rate*db1
 def bk_prop(W,X,Y,nlayers,learning_rate):
     logging.debug("back prop:\nX\n{}\n\nY\n{}\n\n".format(X, Y))
-    out_list=fw_prop(W,X)
     err=loss.derivative_z(out_list[-1], Y) # Y_hat - Y
     dLdZ = err # Z is a vec of sums of multipications of weights with prev layer output to last l
     dldz_str="dLdZ{} = out_list{} - Y = \n{} - {} =\n{}\n\n".format(2,len(out_list)-1,out_list[-1],Y,dLdZ)
@@ -176,6 +207,12 @@ def validate(W,valid):
         if out[-1].argmax() == y:
             correct += 1
     return sum_loss/ len(valid),correct/ len(valid)
+def train_simple(W,B,train_x,train_y,learning_rate,epocs):
+    train = zip(train_x, train_y)
+    for e in range(epocs):
+        rnd.shuffle(train)
+        for X,y in train:
+            bprop(W,B,X,Y[y],learning_rate)
 def train(W,train_x,train_y,params):
     starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
     train,valid=split_to_valid(train_x,train_y)
@@ -194,6 +231,9 @@ def train(W,train_x,train_y,params):
     plt.savefig("/home/nadav/data/perf.tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}.png".format(tst_name,ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
     plt.clf()
     return W, avg_loss_list, avg_acc_list
+def test_simple(W,B,test_x):
+    for X in test_x:
+        print(fprop(W,B,X))
 def test_and_write(model,test_x,params):
     '''
     :param model: a learned weight matrices. the 1st layer W matrix width=|X|=pic_size & high=hidden_layer_size
@@ -219,6 +259,11 @@ def test_and_write(model,test_x,params):
 #train_x=[[pixel/255 for pixel in pic] for pic in train_x]
 test_x =train_x
 
+W,B=init_model_and_b((architectures[0], weight_init_boundries[0]))
+train_simple(W,B,train_x,train_y,learning_rates[0],epocs[0])
+test_simple(test_x)
+
+sys.exit(0)
 for weight_init_boundry in weight_init_boundries:
     for layer_sizes in architectures:
         for learning_rate in learning_rates:
