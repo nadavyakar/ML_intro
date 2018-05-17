@@ -28,32 +28,32 @@ class ActivationInputIdentity:
 pic_size=784
 nclasses=10
 # remove:
-data = open(r"/home/nadav/data/data.txt", "rb").read()
-train_x,train_y,test_x = pickle.loads(data)
+#data = open(r"/home/nadav/data/data.txt", "rb").read()
+#train_x,train_y,test_x = pickle.loads(data)
 
 #train_x = np.loadtxt("train_x")
 #train_y = np.loadtxt("train_y")
 #test_x = np.loadtxt("test_x")
-train_x=[[pixel/255 for pixel in pic] for pic in train_x]
-architectures=[[pic_size,100,nclasses]]
+#train_x=[[pixel/255 for pixel in pic] for pic in train_x]
+#architectures=[[pic_size,100,nclasses]]
 #architectures=[[pic_size,1,nclasses]]
 #epocs=[300]
 #epocs=[1,3]
-learning_rates=[0.01]
-weight_init_boundries=[0.08]
-tst_name="all"
+#learning_rates=[0.01]
+#weight_init_boundries=[0.08]
+#tst_name="all"
 
 # #success
-# pic_size=784
-# nclasses=10
-# train_x = np.loadtxt("train_x_top_100")
-# train_y = np.loadtxt("train_y_top_100")
-# test_x = np.loadtxt("train_x_top_10")
-# architectures=[[pic_size,100,nclasses]]
-# epocs=[300]
-# learning_rates=[0.05]
-# weight_init_boundries=[0.5]
-# tst_name="top_100"
+pic_size=784
+nclasses=10
+train_x = np.loadtxt("train_x_top_100")
+train_y = np.loadtxt("train_y_top_100")
+test_x = np.loadtxt("train_x_top_10")
+architectures=[[pic_size,1,nclasses]]
+epocs=[1,3]
+learning_rates=[0.05]
+weight_init_boundries=[0.5]
+tst_name="top_100"
 
 # success 
 #pic_size=2
@@ -168,11 +168,12 @@ def train(W,B,train_x,train_y,learning_rate,starting_epoc,ending_epoc,avg_loss_l
         logging.debug("epoc {} avg_loss {} acc {} duration {}".format(e,avg_loss,acc,duration))
         avg_loss_list.append(avg_loss)
         avg_acc_list.append(acc)
-    epocs_list = list(range(epocs))
+    epocs_list = list(range(ending_epoc))
     plt.plot(epocs_list,avg_loss_list,'bs',epocs_list,avg_acc_list,'rs')
     plt.xlabel("epocs")
     plt.savefig("/home/nadav/perf.tst_{}.e_{}.lr_{}.hs_{}.w_{}.png".format(tst_name,epocs,learning_rate,architectures[0][1],weight_init_boundries[0]))
     plt.clf()
+    return avg_loss_list,avg_acc_list
 # def train(W,train_x,train_y,params):
 #     epocs_list=list(range(ending_epoc))
 def test(W,B,test_x):
