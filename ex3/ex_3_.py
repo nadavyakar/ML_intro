@@ -31,33 +31,40 @@ class ActivationInputIdentity:
     def derivative(self, out):
         return np.array([.0,])
 
+pic_size=784
+nclasses=10
+train_x = np.loadtxt("train_x_top_100")
+train_y = np.loadtxt("train_y_top_100")
+test_x = np.loadtxt("train_x_top_10")
+architectures=[[pic_size,50,nclasses]]
+activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+tst_name="top_100"
 
+# fails:
 # pic_size=2
 # nclasses=2
-# train_x=[np.array([0,0]),
-#          np.array([0,1]),
-#          np.array([1,0]),
-#          np.array([1,1]),
-#          np.array([0,0]),
-#          np.array([0,1]),
-#          np.array([1,0]),
-#          np.array([1,1])]
-# train_y=[0,1,1,0,0,1,1,0]
-# architectures=[[pic_size,2,nclasses]]
+# train_x=[[0,0],
+#          [0,1],
+#          [1,0],
+#          [1,1]]*10
+# train_y=[0,1,1,0]*10
+# architectures=[[pic_size,50,nclasses]]
 # activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
 # tst_name="xor"
 
-nclasses=4
-pic_size=2
-train_x=[[0,0],
-         [0,1],
-         [1,0],
-         [1,1]]
-train_y=[0,1,2,3]
-architectures=[[pic_size,4,nclasses]]
-activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
-tst_name="identity"
+# success:
+# nclasses=4
+# pic_size=2
+# train_x=[[0,0],
+#          [0,1],
+#          [1,0],
+#          [1,1]]
+# train_y=[0,1,2,3]
+# architectures=[[pic_size,4,nclasses]]
+# activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+# tst_name="identity"
 
+# success:
 # nclasses=2
 # pic_size=2
 # train_x=[[0,1],
@@ -67,6 +74,7 @@ tst_name="identity"
 # activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
 # tst_name="identity"
 
+# success:
 # nclasses=2
 # pic_size=2
 # train_x=[[0,1],
@@ -76,20 +84,20 @@ tst_name="identity"
 # activation=[ActivationInputIdentity(), ActivationSoftmax()]
 # tst_name="identity"
 
-train_x=[np.array(X) for X in train_x]
+# train_x=[np.array(X) for X in train_x]
 
 batch_size=1
 validation_ratio=.2
-epocs=[300]
-learning_rates=[0.1]
-weight_init_boundries=[0.1]
+epocs=[100]
+learning_rates=[0.01]
+weight_init_boundries=[0.05]
 from math import exp
 
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
 # rnd.seed(1)
 
 # logger=logging.getLogger(__name__)
-logging.basicConfig(filename="/home/nadav/data/nn.log",level=logging.DEBUG)
+logging.basicConfig(filename="/home/nadav/data/nn.log",level=logging.ERROR)
 
 def init_model(params):
     layer_sizes, weight_init_boundry = params
@@ -202,9 +210,6 @@ def test_and_write(model,test_x,params):
 #train_x = np.loadtxt("train_x")
 #train_y = np.loadtxt("train_y")
 #test_x = np.loadtxt("test_x")
-# train_x = np.loadtxt("train_x_top_10")
-# train_y = np.loadtxt("train_y_top_10")
-# test_x = np.loadtxt("test_x_top_10")
 
 #with open(r"data.txt", "wb") as f:
 #    f.write(pickle.dumps((train_x, train_y, test_x)))
