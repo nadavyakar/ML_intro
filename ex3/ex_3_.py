@@ -32,30 +32,47 @@ class ActivationInputIdentity:
     def derivative(self, out):
         return np.array([.0,])
 
+#
+pic_size=784
+nclasses=10
+data = open(r"/home/nadav/data/data.txt", "rb").read()
+train_x,train_y,test_x = pickle.loads(data)
+train_x=[[pixel/255 for pixel in pic] for pic in train_x]
+architectures=[[pic_size,100,nclasses]]
+activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+epocs=[300]
+learning_rates=[0.05]
+weight_init_boundries=[0.5]
+tst_name="all"
+
+# #success
 # pic_size=784
 # nclasses=10
 # train_x = np.loadtxt("train_x_top_100")
 # train_y = np.loadtxt("train_y_top_100")
 # test_x = np.loadtxt("train_x_top_10")
-# architectures=[[pic_size,50,nclasses]]
+# architectures=[[pic_size,100,nclasses]]
 # activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+# epocs=[300]
+# learning_rates=[0.05]
+# weight_init_boundries=[0.5]
 # tst_name="top_100"
 
-# 
-pic_size=2
-nclasses=2
-test_x=[[0,0],
-         [0,1],
-         [1,0],
-         [1,1]]
-train_x=test_x*10
-train_y=[0,1,1,0]*10
-architectures=[[pic_size,50,nclasses]]
-activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
-epocs=[300]
-learning_rates=[0.05]
-weight_init_boundries=[0.5]
-tst_name="xor"
+# success 
+#pic_size=2
+#nclasses=2
+#test_x=[[0,0],
+#         [0,1],
+#         [1,0],
+#         [1,1]]
+#train_x=test_x*10
+#train_y=[0,1,1,0]*10
+#architectures=[[pic_size,50,nclasses]]
+#activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+#epocs=[300]
+#learning_rates=[0.05]
+#weight_init_boundries=[0.5]
+#tst_name="xor"
 
 # success:
 # nclasses=4
@@ -112,7 +129,7 @@ def init_model_and_b(params):
            [ np.matrix([rnd.uniform(-weight_init_boundry,weight_init_boundry) for j in range(layer_sizes[l+1])]) for l in range(len(layer_sizes)-1) ] #B
 class LossNegLogLikelihood:
     def __call__(self, V, y):
-        return -log(V[int(y)])
+        return -log(np.squeeze(np.asarray(V))[int(y)])
     def derivative_z(self, out, Y):
         return out-Y
 loss=LossNegLogLikelihood()
@@ -133,16 +150,16 @@ def fprop(W,B,X):
     z2 = np.dot(W2, h1.T).reshape(-1) + b2
     h2 = sigmoid(z2)
     return [h1,h2]
-def fw_prop(W,X):
-    IN = X
-    layers_out=[IN]
-    for i in range(len(W)):
-        WdotIN = np.dot(W[i],np.append(IN,1.))
-        OUT=activation[i+1](WdotIN.reshape(WdotIN.shape[1],-1))
-        layers_out.append(np.array(OUT))
-        logging.debug("fw prop layer {}:\nin\n{}\n\nW\n{}\n\nW*in\n{}\n\nout\n{}\n".format(i,IN,W[i],WdotIN,OUT))
-        IN=OUT
-    return layers_out
+# def fw_prop(W,X):
+#     IN = X
+#     layers_out=[IN]
+#     for i in range(len(W)):
+#         WdotIN = np.dot(W[i],np.append(IN,1.))
+#         OUT=activation[i+1](WdotIN.reshape(WdotIN.shape[1],-1))
+#         layers_out.append(np.array(OUT))
+#         logging.debug("fw prop layer {}:\nin\n{}\n\nW\n{}\n\nW*in\n{}\n\nout\n{}\n".format(i,IN,W[i],WdotIN,OUT))
+#         IN=OUT
+#     return layers_out
 def bprop(W,B,X,Y,learning_rate):
     out_list=fprop(W,B,X)
     h2 = out_list[1]
@@ -162,27 +179,27 @@ def bprop(W,B,X,Y,learning_rate):
     B[1] = B[1] - learning_rate*db2
     W[0] = W[0]-learning_rate*dW1
     B[0] = B[0] - learning_rate*db1
-def bk_prop(W,X,Y,nlayers,learning_rate):
-    logging.debug("back prop:\nX\n{}\n\nY\n{}\n\n".format(X, Y))
-    err=loss.derivative_z(out_list[-1], Y) # Y_hat - Y
-    dLdZ = err # Z is a vec of sums of multipications of weights with prev layer output to last l
-    dldz_str="dLdZ{} = out_list{} - Y = \n{} - {} =\n{}\n\n".format(2,len(out_list)-1,out_list[-1],Y,dLdZ)
-    # ayer neurons
-    for l in list(reversed(range(nlayers)))[:-1]:
-        logging.debug("bk prop layer {}:".format(l))
-        out_prev=np.append(out_list[l-1],1.) # out_prev = V(l-1)
-        logging.debug(dldz_str)
-        logging.debug("V{}\n{}\n\n".format(l-1,out_prev))
-        dLdW = np.outer(dLdZ, out_prev) # calculate a matrix of the same shape as W[l] used to update it
-        logging.debug("dLdW{} = dLdZ{} outer V{}\n{}\n\n".format(l,l,l-1,dLdW))
-        err=np.squeeze(np.asarray(np.dot(np.transpose(W[l-1]), dLdZ))) # pass the delta of layer l neurons down to layer l-1 neurons
-        logging.debug("err{} = T(W{}) dot dLdZ{}\n{}\n\n".format(l-1,l-1,l,err))
-        # err=np.asarray(np.dot(np.transpose(W[l-1]), dLdZ)) # pass the delta of layer l neurons down to layer l-1 neurons
-        W[l-1]-=learning_rate*dLdW # update layer l-1 to layer l weights
-        logging.debug("W{} -= {}*dLdW{}\n{}\n\n".format(l - 1, learning_rate, l, dLdW))
-        if l>1:
-            dLdZ = activation[l-1].derivative(out_prev[:-1])*err[:-1] # G_l
-            dldz_str="dLdZ{} =\nactivation_{}'({})*err{}=\n( 1 - {} )* {} * {} =\n{}\n\n".format(l - 1, l-1,out_prev, l-1,out_prev,out_prev,err,activation[l-1].derivative(out_prev))
+# def bk_prop(W,X,Y,nlayers,learning_rate):
+#     logging.debug("back prop:\nX\n{}\n\nY\n{}\n\n".format(X, Y))
+#     err=loss.derivative_z(out_list[-1], Y) # Y_hat - Y
+#     dLdZ = err # Z is a vec of sums of multipications of weights with prev layer output to last l
+#     dldz_str="dLdZ{} = out_list{} - Y = \n{} - {} =\n{}\n\n".format(2,len(out_list)-1,out_list[-1],Y,dLdZ)
+#     # ayer neurons
+#     for l in list(reversed(range(nlayers)))[:-1]:
+#         logging.debug("bk prop layer {}:".format(l))
+#         out_prev=np.append(out_list[l-1],1.) # out_prev = V(l-1)
+#         logging.debug(dldz_str)
+#         logging.debug("V{}\n{}\n\n".format(l-1,out_prev))
+#         dLdW = np.outer(dLdZ, out_prev) # calculate a matrix of the same shape as W[l] used to update it
+#         logging.debug("dLdW{} = dLdZ{} outer V{}\n{}\n\n".format(l,l,l-1,dLdW))
+#         err=np.squeeze(np.asarray(np.dot(np.transpose(W[l-1]), dLdZ))) # pass the delta of layer l neurons down to layer l-1 neurons
+#         logging.debug("err{} = T(W{}) dot dLdZ{}\n{}\n\n".format(l-1,l-1,l,err))
+#         # err=np.asarray(np.dot(np.transpose(W[l-1]), dLdZ)) # pass the delta of layer l neurons down to layer l-1 neurons
+#         W[l-1]-=learning_rate*dLdW # update layer l-1 to layer l weights
+#         logging.debug("W{} -= {}*dLdW{}\n{}\n\n".format(l - 1, learning_rate, l, dLdW))
+#         if l>1:
+#             dLdZ = activation[l-1].derivative(out_prev[:-1])*err[:-1] # G_l
+#             dldz_str="dLdZ{} =\nactivation_{}'({})*err{}=\n( 1 - {} )* {} * {} =\n{}\n\n".format(l - 1, l-1,out_prev, l-1,out_prev,out_prev,err,activation[l-1].derivative(out_prev))
 
 
 # def bprop(W,X,Y,nlayers,learning_rate):
@@ -204,57 +221,73 @@ def bk_prop(W,X,Y,nlayers,learning_rate):
 #   db1 = dz1                                     #  dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/db1
 #   return {'b1': db1, 'W1': dW1, 'b2': db2, 'W2': dW2}
 
-def validate(W,valid):
+def validate(W,B,valid):
     sum_loss= 0.0
     correct=0.0
     for X, y in valid:
         logging.debug("validating:\nX {}\ny {}\n".format(X,y))
-        out = fw_prop(W,X)
+        out = fprop(W,B,X)
         sum_loss += loss(out[-1],y)
         if out[-1].argmax() == y:
             correct += 1
     return sum_loss/ len(valid),correct/ len(valid)
 def train_simple(W,B,train_x,train_y,learning_rate,epocs):
-    train = zip(train_x, train_y)
+    # train = zip(train_x, train_y)
+    train,valid=split_to_valid(train_x,train_y)
+    avg_loss_list=[]
+    avg_acc_list=[]
     for e in range(epocs):
         rnd.shuffle(train)
         for X,y in train:
             bprop(W,B,X,Y[y],learning_rate)
-def train(W,train_x,train_y,params):
-    starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
-    train,valid=split_to_valid(train_x,train_y)
-    for e in range(starting_epoc,ending_epoc):
-        rnd.shuffle(train)
-        for X,y in train:
-            bk_prop(W,X,Y[y],len(layer_sizes),learning_rate)
-            # bprop(W,X,Y[y],len(layer_sizes),learning_rate)
-        avg_loss,acc=validate(W, valid)
+        avg_loss,acc=validate(W, B, valid)
+        print("avg_loss {}\nacc {}".format(avg_loss,acc))
         avg_loss_list.append(avg_loss)
         avg_acc_list.append(acc)
-        logging.error("epoc {} avg loss {} accuracy {}".format(e,avg_loss,acc))
-    epocs_list=list(range(ending_epoc))
+    epocs_list = list(range(epocs))
     plt.plot(epocs_list,avg_loss_list,'bs',epocs_list,avg_acc_list,'rs')
     plt.xlabel("epocs")
-    plt.savefig("/home/nadav/data/perf.tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}.png".format(tst_name,ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
+    plt.savefig("/home/nadav/data/perf.tst_{}.e_{}.lr_{}.hs_{}.w_{}.png".format(tst_name,epocs,learning_rate,architectures[0][1],weight_init_boundries[0]))
     plt.clf()
-    return W, avg_loss_list, avg_acc_list
+# def train(W,train_x,train_y,params):
+#     starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
+#     train,valid=split_to_valid(train_x,train_y)
+#     for e in range(starting_epoc,ending_epoc):
+#         rnd.shuffle(train)
+#         for X,y in train:
+#             bk_prop(W,X,Y[y],len(layer_sizes),learning_rate)
+#             # bprop(W,X,Y[y],len(layer_sizes),learning_rate)
+#         avg_loss,acc=validate(W, valid)
+#         avg_loss_list.append(avg_loss)
+#         avg_acc_list.append(acc)
+#         logging.error("epoc {} avg loss {} accuracy {}".format(e,avg_loss,acc))
+#     epocs_list=list(range(ending_epoc))
+#     plt.plot(epocs_list,avg_loss_list,'bs',epocs_list,avg_acc_list,'rs')
+#     plt.xlabel("epocs")
+#     plt.savefig("/home/nadav/data/perf.tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}.png".format(tst_name,ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
+#     plt.clf()
+#     return W, avg_loss_list, avg_acc_list
 def test_simple(W,B,test_x):
-    for X in test_x:
-        p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
-        print("X {} p {} y_hat {}".format(X,p,p.argmax()))
-def test_and_write(model,test_x,params):
-    '''
-    :param model: a learned weight matrices. the 1st layer W matrix width=|X|=pic_size & high=hidden_layer_size
-                  the 2nd layer matrix width=hidden_layer_size & high=nclasses
-    :param test_x:
-    :return:
-    '''
-    starting_epoc, epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
-    with open("/home/nadav/data/test.tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(tst_name,epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry), 'w') as f:
+    c=0.0
+    with open("/home/nadav/data/test.tst_{}.e_{}.lr_{}.hs_{}.w_{}".format(tst_name,epocs[0],learning_rates[0],architectures[0][1],weight_init_boundries[0]), 'w') as f:
         for X in test_x:
-            p=fw_prop(model,X)[-1].argmax()
-            print("{}:{}".format(X,p))
-            f.write("{}".format(p))
+            p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
+            print("p {} y_hat {}".format(p,p.argmax()))
+            f.write("{}\n".format(p.argmax()))
+# def test_and_write(model,test_x,params):
+#     '''
+#     :param model: a learned weight matrices. the 1st layer W matrix width=|X|=pic_size & high=hidden_layer_size
+#                   the 2nd layer matrix width=hidden_layer_size & high=nclasses
+#     :param test_x:
+#     :return:
+#     '''
+#     starting_epoc, epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list = params
+#     with open("/home/nadav/data/test.tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(tst_name,epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry), 'w') as f:
+#         for X in test_x:
+#             p=fw_prop(model,X)[-1].argmax()
+#             print("{}:{}".format(X,p))
+#             f.write("{}".format(p))
+
 #train_x = np.loadtxt("train_x")
 #train_y = np.loadtxt("train_y")
 #test_x = np.loadtxt("test_x")
@@ -271,22 +304,22 @@ W,B=init_model_and_b((architectures[0], weight_init_boundries[0]))
 train_simple(W,B,train_x,train_y,learning_rates[0],epocs[0])
 test_simple(W,B,test_x)
 
-sys.exit(0)
-for weight_init_boundry in weight_init_boundries:
-    for layer_sizes in architectures:
-        for learning_rate in learning_rates:
-            params=layer_sizes, weight_init_boundry
-            W = init_model(params)
-            avg_loss_list = []
-            avg_acc_list = []
-            starting_epoc=0
-            for ending_epoc in epocs:
-                params = starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list
-                logging.error("start training with params: tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(tst_name,ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
-                W, avg_loss_list, avg_acc_list =train(W,train_x,train_y,params)
-                starting_epoc = ending_epoc
-                # with open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry),"wb") as f:
-                #     f.write(pickle.dumps((W,avg_loss_list, avg_acc_list)))
-                #pW=open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(epocs,learning_rate,layer_sizes[1],batch_size,weight_init_boundry)).read()
-                #W,avg_loss_list, avg_acc_list=pickle.loads(pW)
-                test_and_write(W,test_x,params)
+# sys.exit(0)
+# for weight_init_boundry in weight_init_boundries:
+#     for layer_sizes in architectures:
+#         for learning_rate in learning_rates:
+#             params=layer_sizes, weight_init_boundry
+#             W = init_model(params)
+#             avg_loss_list = []
+#             avg_acc_list = []
+#             starting_epoc=0
+#             for ending_epoc in epocs:
+#                 params = starting_epoc, ending_epoc, learning_rate, layer_sizes, batch_size, weight_init_boundry, avg_loss_list, avg_acc_list
+#                 logging.error("start training with params: tst_{}.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(tst_name,ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry))
+#                 W, avg_loss_list, avg_acc_list =train(W,train_x,train_y,params)
+#                 starting_epoc = ending_epoc
+#                 # with open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(ending_epoc,learning_rate,layer_sizes[1],batch_size,weight_init_boundry),"wb") as f:
+#                 #     f.write(pickle.dumps((W,avg_loss_list, avg_acc_list)))
+#                 #pW=open(r"/home/nadav/data/W.e_{}.lr_{}.hs_{}.bs_{}.w_{}".format(epocs,learning_rate,layer_sizes[1],batch_size,weight_init_boundry)).read()
+#                 #W,avg_loss_list, avg_acc_list=pickle.loads(pW)
+#                 test_and_write(W,test_x,params)
