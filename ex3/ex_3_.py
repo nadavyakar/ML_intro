@@ -41,17 +41,21 @@ class ActivationInputIdentity:
 # activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
 # tst_name="top_100"
 
-# fails:
-# pic_size=2
-# nclasses=2
-# train_x=[[0,0],
-#          [0,1],
-#          [1,0],
-#          [1,1]]*10
-# train_y=[0,1,1,0]*10
-# architectures=[[pic_size,50,nclasses]]
-# activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
-# tst_name="xor"
+# 
+pic_size=2
+nclasses=2
+test_x=[[0,0],
+         [0,1],
+         [1,0],
+         [1,1]]
+train_x=test_x*10
+train_y=[0,1,1,0]*10
+architectures=[[pic_size,50,nclasses]]
+activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+epocs=[300]
+learning_rates=[0.05]
+weight_init_boundries=[0.5]
+tst_name="xor"
 
 # success:
 # nclasses=4
@@ -75,23 +79,22 @@ class ActivationInputIdentity:
 # activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
 # tst_name="identity"
 
-# success:
-nclasses=2
-pic_size=2
-train_x=[np.array([0,1]),
-         np.array([1,0])]
-train_y=[0,1]
-architectures=[[pic_size,2, nclasses]]
-activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
-tst_name="identity"
+## success:
+#nclasses=4
+#pic_size=2
+#train_x=[[0,1],
+#         [1,0]]
+#train_y=[0,1]
+#architectures=[[pic_size,3, nclasses]]
+#activation=[ActivationInputIdentity(), ActivationSigmoid(), ActivationSoftmax()]
+#tst_name="identity"
 
-# train_x=[np.array(X) for X in train_x]
+train_x=[np.array(X) for X in train_x]
 
-batch_size=1
 validation_ratio=.2
-epocs=[20]
-learning_rates=[0.05]
-weight_init_boundries=[0.08]
+#epocs=[20]
+#learning_rates=[0.05]
+#weight_init_boundries=[0.08]
 from math import exp
 
 Y=dict([(y,[ 1 if i==y else 0 for i in range(nclasses)]) for y in range(nclasses) ])
@@ -127,7 +130,7 @@ def fprop(W,B,X):
     x=X
     z1 = np.dot(W1, x) + b1
     h1 = sigmoid(z1)
-    z2 = np.dot(W2, h1.T) + b2
+    z2 = np.dot(W2, h1.T).reshape(-1) + b2
     h2 = sigmoid(z2)
     return [h1,h2]
 def fw_prop(W,X):
@@ -144,12 +147,16 @@ def bprop(W,B,X,Y,learning_rate):
     out_list=fprop(W,B,X)
     h2 = out_list[1]
     h1 = out_list[0]
-    y=Y
+    y=np.matrix([Y])
     dz2 = (h2 - y)  # dL/dz2
-    dW2 = np.dot(dz2, h1.T)  # dL/dz2 * dz2/dw2
+    # dW2 = np.dot(dz2, h1.T)  # dL/dz2 * dz2/dw2
+    dW2 = np.outer(dz2, h1.T)  # dL/dz2 * dz2/dw2
     db2 = dz2  # dL/dz2 * dz2/db2
-    dz1 = np.dot(W[1].T,(h2 - y)) * h1.T * (1 - h1.reshape(-1))  # dL/dz2 * dz2/dh1 * dh1/dz1
-    dW1 = np.dot(dz1, X.T)  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/dw1
+    # dz1 = np.dot(W[1].T,(h2 - y).T) * h1.T * (1. - h1.T)  # dL/dz2 * dz2/dh1 * dh1/dz1
+    dz1 = np.array(np.dot(W[1].T, (h2 - y).T).reshape(-1).tolist()) * np.array(h1.tolist()) * (1. - np.array(h1.tolist()))
+
+    # dW1 = np.dot(dz1, X.T)  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/dw1
+    dW1 = np.outer(dz1, X.T)  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/dw1
     db1 = dz1  # dL/dz2 * dz2/dh1 * dh1/dz1 * dz1/db1
     W[1] = W[1] - learning_rate*dW2
     B[1] = B[1] - learning_rate*db2
@@ -233,7 +240,8 @@ def train(W,train_x,train_y,params):
     return W, avg_loss_list, avg_acc_list
 def test_simple(W,B,test_x):
     for X in test_x:
-        print(fprop(W,B,X))
+        p=np.squeeze(np.asarray(fprop(W, B, X)[-1]))
+        print("X {} p {} y_hat {}".format(X,p,p.argmax()))
 def test_and_write(model,test_x,params):
     '''
     :param model: a learned weight matrices. the 1st layer W matrix width=|X|=pic_size & high=hidden_layer_size
@@ -257,11 +265,11 @@ def test_and_write(model,test_x,params):
 # data = open(r"/home/nadav/data/data.txt", "rb").read()
 # train_x,train_y,test_x = pickle.loads(data)
 #train_x=[[pixel/255 for pixel in pic] for pic in train_x]
-test_x =train_x
+#test_x =train_x
 
 W,B=init_model_and_b((architectures[0], weight_init_boundries[0]))
 train_simple(W,B,train_x,train_y,learning_rates[0],epocs[0])
-test_simple(test_x)
+test_simple(W,B,test_x)
 
 sys.exit(0)
 for weight_init_boundry in weight_init_boundries:
