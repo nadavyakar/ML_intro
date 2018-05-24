@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 from torchvision import datasets, transforms
+from torch import nn
+
+lr=0.001
 
 transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 train_loader = torch.utils.data.DataLoader(datasets.FashionMNIST('./data', train=True, download=True, transform=transforms), batch_size=64, shuffle=True)
