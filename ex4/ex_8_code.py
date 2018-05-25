@@ -46,22 +46,21 @@ def train(train_loader,model,optimizer):
 
         loss.backward()
         optimizer.step()
-    return loss_sum /len(train_loader.dataset), correct / len(train_loader.dataset)
+    return loss_sum /len(train_loader.dataset), 100. * correct / len(train_loader.dataset)
 
 
-def test(model, test_loader):
+def test_and_validate(dataset_loader, model):
     model.eval()
-    test_loss = 0
-    correct = 0
-    for data, target in test_loader:
+    test_loss = 0.
+    correct = 0.
+    for data, target in dataset_loader:
         output = model(data)
         test_loss += F.nll_loss(output, target, size_average=False).data[0] # sum up batch loss
         pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
     test_loss /= len(test_loader.dataset)
-    acc = correct / len(test_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), 100. * acc))
+    acc = 100. * correct / len(test_loader.dataset)
+    return test_loss, acc
 
 lr=0.01
 nfc0=100
@@ -74,6 +73,7 @@ nepocs=10
 transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 train_loader = torch.utils.data.DataLoader(datasets.FashionMNIST('./data', train=True, download=True, transform=transforms), batch_size=64, shuffle=True)
 test_loader = torch.utils.data.DataLoader(datasets.FashionMNIST('./data', train=False, transform=transforms), batch_size=64, shuffle=True)
+# todo split data to train and validate and produce reportfor validate
 
 i=0
 for model in [FirstNet(image_size,nfc0,nfc1,nfc2)]:
@@ -89,15 +89,23 @@ for model in [FirstNet(image_size,nfc0,nfc1,nfc2)]:
     valid_acc_list=[]
     for e in epocs_list:
         print("epoc {}".format(e))
-        avg_loss,acc = train(train_loader, model,optimizer)
+        avg_loss, acc = train(train_loader, model,optimizer)
         avg_train_loss_list.append(avg_loss)
         train_acc_list.append(acc)
-        # avg_loss, acc = valid(train_loader, model, optimizer)
-        # avg_valid_loss_list.append(avg_loss)
-        # valid_acc_list.append(acc)
-    test(model, test_loader)
-    plt.plot(epocs_list,avg_train_loss_list,'bs',epocs_list,train_acc_list,'rs',linewidth=1, markersize=1)
-    # plt.plot(epocs_list,avg_train_loss_list,'bs',epocs_list,train_acc_list,'rs',epocs_list,avg_valid_loss_list,'gs',epocs_list,valid_acc_list,'ps')
+
+        avg_loss, acc = test_and_validate(validation_loader, model)
+        avg_valid_loss_list.append(avg_loss)
+        valid_acc_list.append(acc)
+    avg_loss, acc = test_and_validate(test_loader, model)
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {:.0f}%\n'.format(avg_loss, acc))
+
+    # plt.plot(epocs_list,avg_train_loss_list,'bs',linewidth=1, markersize=1)
+    plt.plot(epocs_list,avg_train_loss_list,'bs',epocs_list,avg_valid_loss_list,'rs',linewidth=1, markersize=1)
     plt.xlabel("epocs")
-    plt.savefig("performance_model_{}.png".format(1))
+    plt.savefig("loss_model_{}.png".format(1))
+    plt.clf()
+    # plt.plot(epocs_list,train_acc_list,'bs',linewidth=1, markersize=1)
+    plt.plot(epocs_list,train_acc_list,'bs',epocs_list,valid_acc_list,'rs',linewidth=1, markersize=1)
+    plt.xlabel("epocs")
+    plt.savefig("accuracy_model_{}.png".format(1))
     plt.clf()
