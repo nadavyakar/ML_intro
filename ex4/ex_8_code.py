@@ -63,87 +63,96 @@ def train(train_loader,model,optimizer):
         optimizer.step()
     return loss_sum /len(train_loader.dataset), 100. * correct / len(train_loader.dataset)
 
-def test_and_validate(dataset_loader, model):
+def test_and_validate(dataset_loader, model, ndataset=None):
     model.eval()
     loss = 0.
     correct = 0.
+    if ndataset is None:
+        ndataset = len(dataset_loader.dataset)
     for data, target in dataset_loader:
         output = model(data)
         loss += F.nll_loss(output, target, size_average=False).item()
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
-    loss /= len(dataset_loader.dataset)
-    acc = 100. * correct / len(dataset_loader.dataset)
-    return loss, acc
+    return loss/ ndataset, 100. * correct / ndataset
 
-lr=0.01
+# lr=0.01
 nfc0=100
 nfc1=50
 nclasses=10
 nfc2=nclasses
 image_size=28*28
 nepocs=10
-batch_size=64
+# batch_size=64
 valid_ratio=0.2
 
-transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-train_dataset=datasets.FashionMNIST('./data', train=True, download=True, transform=transforms)
+for lr in [0.001,0.01, 0.05]:
+    print('learning rate'.format(lr))
+    for batch_size in [pow(2,x) for x in [0,3,5,6]]:
+        print('batch size'.format(batch_size))
+        transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+        train_dataset=datasets.FashionMNIST('./data', train=True, download=True, transform=transforms)
 
-indices = list(range(len(train_dataset)))
-split = int(valid_ratio*len(train_dataset))
+        ntrain = len(train_dataset)
+        indices = list(range(ntrain))
+        nvalid = int(valid_ratio*len(train_dataset))
 
-validation_idx = np.random.choice(indices, size=split, replace=False)
-train_idx = list(set(indices) - set(validation_idx))
+        validation_idx = np.random.choice(indices, size=nvalid, replace=False)
+        train_idx = list(set(indices) - set(validation_idx))
 
-train_sampler = SubsetRandomSampler(train_idx)
-validation_sampler = SubsetRandomSampler(validation_idx)
+        train_sampler = SubsetRandomSampler(train_idx)
+        validation_sampler = SubsetRandomSampler(validation_idx)
 
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, sampler=train_sampler)
-validation_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, sampler=validation_sampler)
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, sampler=train_sampler)
+        validation_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, sampler=validation_sampler)
 
-test_loader = torch.utils.data.DataLoader(datasets.FashionMNIST('./data', train=False, transform=transforms), batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(datasets.FashionMNIST('./data', train=False, transform=transforms), batch_size=batch_size, shuffle=True)
 
-i=0
-for model in [FirstNet(image_size,nfc0,nfc1,nfc2),SecondNet(image_size,nfc0,nfc1,nfc2),ThirdNet(image_size,nfc0,nfc1,nfc2)]:
-    i+=1
-    print("\nmodel number {}".format(i))
-    optimizer = optim.SGD(model.parameters(), lr=lr)
-    # optimizer = optim.Adam(model.parameters(), lr=lr)
-    # optimizer = optim.AdaDelta(model.parameters(), lr=lr)
-    # optimizer = optim.RMSprop(model.parameters(), lr=lr)
-    epocs_list = list(range(nepocs))
-    train_loss=0.0
-    avg_train_loss_list=[]
-    train_acc=0.0
-    train_acc_list=[]
-    valid_loss=0.0
-    avg_valid_loss_list=[]
-    valid_acc = 0.0
-    valid_acc_list=[]
+        i=0
+        for model in [FirstNet(image_size,nfc0,nfc1,nfc2),SecondNet(image_size,nfc0,nfc1,nfc2),ThirdNet(image_size,nfc0,nfc1,nfc2)]:
+            i+=1
+            print("\nmodel number {}".format(i))
+            for optimizer, optimizer_name in [ (optim.SGD(model.parameters(), lr=lr),"sgd"),
+                                               (optim.Adam(model.parameters(), lr=lr), "adam"),
+                                               (optim.RMSprop(model.parameters(), lr=lr),"rmsprop") ]:
+                print("optimizer {}".format(optimizer_name))
+                # optimizer = optim.SGD(model.parameters(), lr=lr)
+                # optimizer = optim.Adam(model.parameters(), lr=lr)
+                # optimizer = optim.AdaDelta(model.parameters(), lr=lr)
+                # optimizer = optim.RMSprop(model.parameters(), lr=lr)
+                epocs_list = list(range(nepocs))
+                train_loss=0.0
+                avg_train_loss_list=[]
+                train_acc=0.0
+                train_acc_list=[]
+                valid_loss=0.0
+                avg_valid_loss_list=[]
+                valid_acc = 0.0
+                valid_acc_list=[]
 
-    for e in epocs_list:
-        print("epoc {}".format(e))
-        train_loss, train_acc = train(train_loader, model,optimizer)
+                for e in epocs_list:
+                    print("epoc {}".format(e))
+                    train_loss, train_acc = train(train_loader, model,optimizer)
 
-        train_loss, train_acc = test_and_validate(train_loader, model)
-        avg_train_loss_list.append(train_loss)
-        train_acc_list.append(train_acc)
+                    train_loss, train_acc = test_and_validate(train_loader, model, ntrain)
+                    avg_train_loss_list.append(train_loss)
+                    train_acc_list.append(train_acc)
 
-        valid_loss, valid_acc = test_and_validate(validation_loader, model)
-        avg_valid_loss_list.append(valid_loss)
-        valid_acc_list.append(valid_acc)
-    test_avg_loss, test_acc = test_and_validate(test_loader, model)
-    print('Training set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(train_loss, train_acc))
-    print('Validation set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(valid_loss, valid_acc))
-    print('Test set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(test_avg_loss, test_acc))
+                    valid_loss, valid_acc = test_and_validate(validation_loader, model, nvalid)
+                    avg_valid_loss_list.append(valid_loss)
+                    valid_acc_list.append(valid_acc)
+                test_avg_loss, test_acc = test_and_validate(test_loader, model)
+                print('Training set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(train_loss, train_acc))
+                print('Validation set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(valid_loss, valid_acc))
+                print('Test set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(test_avg_loss, test_acc))
 
-    # plt.plot(epocs_list,avg_train_loss_list,color='blue',linewidth=1, markersize=1)
-    plt.plot(epocs_list,avg_train_loss_list,'red',epocs_list,avg_valid_loss_list,'green',linewidth=1, markersize=1)
-    plt.xlabel("epocs")
-    plt.savefig("loss_model_{}.png".format(i))
-    plt.clf()
-    # plt.plot(epocs_list,train_acc_list,color='blue',linewidth=1, markersize=1)
-    plt.plot(epocs_list,train_acc_list,'red',epocs_list,valid_acc_list,'green',linewidth=1, markersize=1)
-    plt.xlabel("epocs")
-    plt.savefig("accuracy_model_{}.png".format(i))
-    plt.clf()
+                # plt.plot(epocs_list,avg_train_loss_list,color='blue',linewidth=1, markersize=1)
+                plt.plot(epocs_list,avg_train_loss_list,'red',epocs_list,avg_valid_loss_list,'green',linewidth=1, markersize=1)
+                plt.xlabel("epocs")
+                plt.savefig("loss_model_{}.optimizer_{}.batch_{}.lr_{}.png".format(i,optimizer_name,batch_size,lr))
+                plt.clf()
+                # plt.plot(epocs_list,train_acc_list,color='blue',linewidth=1, markersize=1)
+                plt.plot(epocs_list,train_acc_list,'red',epocs_list,valid_acc_list,'green',linewidth=1, markersize=1)
+                plt.xlabel("epocs")
+                plt.savefig("accuracy_model_{}.optimizer_{}.batch_{}.lr_{}.png".format(i,optimizer_name,batch_size,lr))
+                plt.clf()
