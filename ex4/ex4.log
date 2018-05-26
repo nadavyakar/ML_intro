@@ -1,0 +1,160 @@
+ex_8_code.py:21: UserWarning: Implicit dimension choice for log_softmax has been deprecated. Change the call to include dim=X as an argument.
+  return F.log_softmax(self.fc2(x))
+ex_8_code.py:30: UserWarning: Implicit dimension choice for log_softmax has been deprecated. Change the call to include dim=X as an argument.
+  return F.log_softmax(self.fc2(x))
+ex_8_code.py:46: UserWarning: Implicit dimension choice for log_softmax has been deprecated. Change the call to include dim=X as an argument.
+  return F.log_softmax(self.fc2(x))
+model number: 1, optimizer: sgd, learning rate: 0.01, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2799, Accuracy: 69%
+Validation set: Average loss: 0.3815, Accuracy: 86%
+Test set: Average loss: 0.4024, Accuracy: 85%
+model number: 2, optimizer: sgd, learning rate: 0.01, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.3283, Accuracy: 68%
+Validation set: Average loss: 0.4246, Accuracy: 85%
+Test set: Average loss: 0.4502, Accuracy: 83%
+model number: 3, optimizer: sgd, learning rate: 0.01, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2051, Accuracy: 72%
+Validation set: Average loss: 0.3353, Accuracy: 88%
+Test set: Average loss: 0.3580, Accuracy: 87%
+model number: 1, optimizer: sgd, learning rate: 0.01, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2757, Accuracy: 70%
+Validation set: Average loss: 0.3794, Accuracy: 86%
+Test set: Average loss: 0.4007, Accuracy: 85%
+model number: 1, optimizer: sgd, learning rate: 0.001, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.4784, Accuracy: 63%
+Validation set: Average loss: 0.6041, Accuracy: 79%
+Test set: Average loss: 0.6164, Accuracy: 78%
+model number: 1, optimizer: sgd, learning rate: 0.05, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.1946, Accuracy: 72%
+Validation set: Average loss: 0.3230, Accuracy: 88%
+Test set: Average loss: 0.3532, Accuracy: 87%
+model number: 1, optimizer: sgd, learning rate: 0.01, batch size: 1
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2788, Accuracy: 69%
+Validation set: Average loss: 0.3803, Accuracy: 86%
+Test set: Average loss: 0.4041, Accuracy: 85%
+model number: 1, optimizer: sgd, learning rate: 0.01, batch size: 8
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2878, Accuracy: 69%
+Validation set: Average loss: 0.3886, Accuracy: 86%
+Test set: Average loss: 0.4133, Accuracy: 85%
+model number: 1, optimizer: sgd, learning rate: 0.01, batch size: 32
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2717, Accuracy: 70%
+Validation set: Average loss: 0.3710, Accuracy: 86%
+Test set: Average loss: 0.3947, Accuracy: 85%
+model number: 1, optimizer: adam, learning rate: 0.01, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.2487, Accuracy: 70%
+Validation set: Average loss: 0.4158, Accuracy: 86%
+Test set: Average loss: 0.4168, Accuracy: 86%
+model number: 1, optimizer: rmsprop, learning rate: 0.01, batch size: 64
+epoc: 0
+epoc: 1
+epoc: 2
+epoc: 3
+epoc: 4
+epoc: 5
+epoc: 6
+epoc: 7
+epoc: 8
+epoc: 9
+Training set: Average loss: 0.3001, Accuracy: 69%
+Validation set: Average loss: 0.4557, Accuracy: 85%
+Test set: Average loss: 0.4757, Accuracy: 84%
