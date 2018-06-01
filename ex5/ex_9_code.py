@@ -188,14 +188,18 @@ class MyModule(nn.Module):
     def __init__(self,image_size,nfc0,nfc1,nfc2):
         super(MyModule, self).__init__()
         self.image_size = image_size
-        self.fc0 = nn.Linear(image_size, nfc0)
-        self.fc1 = nn.Linear(nfc0, nfc1)
-        self.fc2 = nn.Linear(nfc1, nfc2)
+        # self.fc0 = nn.Linear(image_size, nfc0)
+        # self.fc1 = nn.Linear(nfc0, nfc1)
+        # self.fc2 = nn.Linear(nfc1, nfc2)
+        self.fc0 = nn.Linear(image_size, nfc2)
     def forward(self, x):
+        # x = x.view(-1, self.image_size)
+        # x = F.relu(self.fc0(x))
+        # x = F.relu(self.fc1(x))
+        # return F.log_softmax(self.fc2(x))
+        x=np.squeeze(x.reshape(1, 1, -1))
         x = x.view(-1, self.image_size)
-        x = F.relu(self.fc0(x))
-        x = F.relu(self.fc1(x))
-        return F.log_softmax(self.fc2(x))
+        return F.log_softmax(self.fc0(x))
 
 
 def train_my_model(train_loader,model,optimizer):
@@ -233,22 +237,23 @@ def test_and_validate(dataset_loader, model, ndataset=None, return_pred=False):
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
     return loss/ ndataset, 100. * correct / ndataset, pred_list
 
-nfc0=100
-nfc1=50
-nclasses=10
-nfc2=nclasses
-image_size=28*28
-nepocs=10
-valid_ratio=0.2
+# nfc0=100
+# nfc1=50
+# nclasses=10
+# nfc2=nclasses
+# image_size=28*28
+# nepocs=10
+# valid_ratio=0.2
 
 
 
 nepocs=1
 nclasses=2 #on cifar its 10
-
+ntrain=dataset_sizes['train']
+nvalid=dataset_sizes['val']
 # my model
 mode_name = "my_module"
-model = MyModule(224,1,1,nclasses)
+model = MyModule(224*224*3,1,1,nclasses)
 lr=0.001
 optimizer=optim.SGD(model.parameters(), lr=lr)
 
@@ -277,18 +282,18 @@ print('Training set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(train_loss,
 print('Validation set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(valid_loss, valid_acc))
 print('Test set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(test_avg_loss, test_acc))
 
-plt.plot(epocs_list, avg_train_loss_list, 'red', epocs_list, avg_valid_loss_list, 'green', linewidth=1, markersize=1)
-plt.xlabel("epocs")
-plt.savefig("loss.model_{}.optimizer_{}.batch_{}.lr_{}.png".format(i, optimizer_name, batch_size, lr))
-plt.clf()
-plt.plot(epocs_list, train_acc_list, 'red', epocs_list, valid_acc_list, 'green', linewidth=1, markersize=1)
-plt.xlabel("epocs")
-plt.savefig("accuracy.model_{}.optimizer_{}.batch_{}.lr_{}.png".format(i, optimizer_name, batch_size, lr))
-plt.clf()
-
-with open("test.pred", 'w') as f:
-    for pred in pred_list:
-        f.write("{}\n".format(pred))
+# plt.plot(epocs_list, avg_train_loss_list, 'red', epocs_list, avg_valid_loss_list, 'green', linewidth=1, markersize=1)
+# plt.xlabel("epocs")
+# plt.savefig("loss.model_{}.optimizer_{}.batch_{}.lr_{}.png".format(i, optimizer_name, batch_size, lr))
+# plt.clf()
+# plt.plot(epocs_list, train_acc_list, 'red', epocs_list, valid_acc_list, 'green', linewidth=1, markersize=1)
+# plt.xlabel("epocs")
+# plt.savefig("accuracy.model_{}.optimizer_{}.batch_{}.lr_{}.png".format(i, optimizer_name, batch_size, lr))
+# plt.clf()
+#
+# with open("test.pred", 'w') as f:
+#     for pred in pred_list:
+#         f.write("{}\n".format(pred))
 
 
 
@@ -296,14 +301,14 @@ with open("test.pred", 'w') as f:
 
 # visualize_model(model_conv)
 epocs_list=range(nepocs)
-plt.plot(epocs_list, epoch_losses['train'], 'red', epocs_list, epoch_losses['val'], 'green', linewidth=1, markersize=1)
+plt.plot(epocs_list, avg_train_loss_list, 'red', epocs_list, avg_valid_loss_list, 'green', linewidth=1, markersize=1)
 plt.xlabel("epocs")
 plt.savefig("loss.model_{}.phase_train_and_val.png".format(mode_name))
 plt.clf()
 
-label_list, pred_list, epoch_loss, epoch_acc = test(dataloader_test, model_conv)
-print('model:{} phasse:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name,"test", epoch_loss, epoch_acc))
-print("confusion matrix of {}:\n{}".format(confusion_matrix(label_list, pred_list)))
+# label_list, pred_list, epoch_loss, epoch_acc = test(dataloader_test, model_conv)
+# print('model:{} phasse:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name,"test", epoch_loss, epoch_acc))
+# print("confusion matrix of {}:\n{}".format(confusion_matrix(label_list, pred_list)))
 
 
 
