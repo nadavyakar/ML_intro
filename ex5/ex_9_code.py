@@ -15,20 +15,20 @@ from torchvision.datasets import CIFAR10
 
 plt.ion()
 
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
+# data_transforms = {
+#     'train': transforms.Compose([
+#         transforms.RandomResizedCrop(224),
+#         transforms.RandomHorizontalFlip(),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#     ]),
+#     'val': transforms.Compose([
+#         transforms.Resize(256),
+#         transforms.CenterCrop(224),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#     ]),
+# }
 
 # data_dir = 'hymenoptera_data'
 #
@@ -36,7 +36,15 @@ data_transforms = {
 # image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
 #                   for x in ['train', 'val']}
 
-image_dataset = datasets.CIFAR10('.',download=True)
+# transform = transforms.Compose([
+#     torchvision.transforms.Resize(224,224),
+#     # transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+# ])
+# transform = torchvision.transforms.Resize(224)
+image_dataset = datasets.CIFAR10('.',transform=torchvision.transforms.Resize((224,224)),download=True)
+# image_dataset = datasets.CIFAR10('.',transform=transform,download=True)
 valid_ratio = .2
 dataset_size = len(image_dataset.train_data)
 train_size = int(dataset_size*(1-valid_ratio))
@@ -66,6 +74,9 @@ def imshow(inp, title=None):
 # Get a batch of training data
 # inputs, classes = next(iter(dataloaders['train']))
 inputs = next(iter(dataloaders['train']))
+
+#### todo ERROR: torchvision.transforms.Resize doesn't resize  input images. continue with the orig dataset instead of cifar for the meanwhile
+
 
 # Make a grid from batch
 out = torchvision.utils.make_grid(inputs)
@@ -209,7 +220,7 @@ exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 # model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=25)
 model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=1)
 
-visualize_model(model_conv)
+# visualize_model(model_conv)
 
 plt.ioff()
 plt.show()
