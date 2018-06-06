@@ -22,11 +22,10 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.utils.data.sampler import SubsetRandomSampler
 
-# plt.ion()
-#
+
 data_transforms = {
     'train': transforms.Compose([
-        transforms.RandomResizedCrop(224),
+        transforms.RandomResizedCrop(500),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -39,48 +38,25 @@ data_transforms = {
     ]),
 }
 
-data_transforms = transforms.Compose([
-    transforms.RandomResizedCrop(224),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
+image_datasets = {x: datasets.CIFAR10('.',transform=data_transforms[x])
+                  for x in ['train', 'val']}
 
-#
-# data_dir = 'hymenoptera_data'
-# image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
-#                   for x in ['train', 'val']}
-# # dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
-# #                                              shuffle=True, num_workers=4)
-# #               for x in ['train', 'val']}
-# dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=1,
-#                                              shuffle=True, num_workers=1)
-#               for x in ['train', 'val']}
-#
-# dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-# dataloader_test = dataloaders['val']
-
-
-# transform = transforms.Compose([
-#     torchvision.transforms.Resize(224),
-#     # transforms.RandomHorizontalFlip(),
-#     transforms.ToTensor()
-#     # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-# ])
-image_dataset = datasets.CIFAR10('.',transform=data_transforms,download=True)
+dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
+                                             shuffle=True, num_workers=4)
+              for x in ['train', 'val']}
+image_dataset = image_datasets['train']
+# image_dataset = datasets.CIFAR10('.',transform=data_transforms,download=True)
 valid_ratio = .2
 dataset_size = len(image_dataset.train_data)
 train_size = int(dataset_size*(1-valid_ratio))
 train_data = image_dataset.train_data[:train_size]
 valid_data = image_dataset.train_data[train_size:]
-dataloaders = {x: torch.utils.data.DataLoader(
-    train_data if x=='train' else valid_data, batch_size=1, shuffle=True, num_workers=1) for x in ['train', 'val']}
+# dataloaders = {x: torch.utils.data.DataLoader(
+#     train_data if x=='train' else valid_data, batch_size=1, shuffle=True, num_workers=1) for x in ['train', 'val']}
 dataset_sizes = {'train': train_size, 'val' : dataset_size-train_size}
 # todo load test set
-# image_dataset = datasets.CIFAR10('.',transform=torchvision.transforms.Resize((224,224)),train=False,download=True)
-image_dataset = datasets.CIFAR10('.',transform=data_transforms,train=False,download=True)
-# dataloader_test = torch.utils.data.DataLoader(image_dataset, batch_size=4, shuffle=True, num_workers=4)
-dataloader_test = torch.utils.data.DataLoader(image_dataset, batch_size=1, shuffle=True, num_workers=1)
+# image_dataset = datasets.CIFAR10('.',transform=data_transforms,train=False,download=True)
+# dataloader_test = torch.utils.data.DataLoader(image_dataset, batch_size=1, shuffle=True, num_workers=1)
 
 device = "cpu"
 
@@ -91,7 +67,7 @@ inputs = next(iter(dataloaders['train']))
 
 
 # Make a grid from batch
-# out = torchvision.utils.make_grid(inputs)
+out = torchvision.utils.make_grid(inputs)
 out = torchvision.utils.make_grid(inputs[0])
 
 # imshow(out, title=[class_names[x] for x in classes])
