@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data.sampler import SubsetRandomSampler
 
 # plt.ion()
-
+#
 data_transforms = {
     'train': transforms.Compose([
         transforms.RandomResizedCrop(224),
@@ -39,55 +39,52 @@ data_transforms = {
     ]),
 }
 
-data_dir = 'hymenoptera_data'
-image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
-                  for x in ['train', 'val']}
-# dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
-#                                              shuffle=True, num_workers=4)
+data_transforms = transforms.Compose([
+    transforms.RandomResizedCrop(224),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+#
+# data_dir = 'hymenoptera_data'
+# image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
+#                   for x in ['train', 'val']}
+# # dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
+# #                                              shuffle=True, num_workers=4)
+# #               for x in ['train', 'val']}
+# dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=1,
+#                                              shuffle=True, num_workers=1)
 #               for x in ['train', 'val']}
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=1,
-                                             shuffle=True, num_workers=1)
-              for x in ['train', 'val']}
+#
+# dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+# dataloader_test = dataloaders['val']
 
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-dataloader_test = dataloaders['val']
+
 # transform = transforms.Compose([
-#     torchvision.transforms.Resize(224,224),
+#     torchvision.transforms.Resize(224),
 #     # transforms.RandomHorizontalFlip(),
-#     transforms.ToTensor(),
-#     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#     transforms.ToTensor()
+#     # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 # ])
-# transform = torchvision.transforms.Resize(224)
-# image_dataset = datasets.CIFAR10('.',transform=torchvision.transforms.Resize((224,224)),download=True)
-# valid_ratio = .2
-# dataset_size = len(image_dataset.train_data)
-# train_size = int(dataset_size*(1-valid_ratio))
-# train_data = image_dataset.train_data[:train_size]
-# valid_data = image_dataset.train_data[train_size:]
-# dataloaders = {x: torch.utils.data.DataLoader(
-#     train_data if x=='train' else valid_data, batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'val']}
-# dataset_sizes = {'train': train_size, 'val' : dataset_size-train_size}
-
-# class_names = image_datasets['train'].classes
+image_dataset = datasets.CIFAR10('.',transform=data_transforms,download=True)
+valid_ratio = .2
+dataset_size = len(image_dataset.train_data)
+train_size = int(dataset_size*(1-valid_ratio))
+train_data = image_dataset.train_data[:train_size]
+valid_data = image_dataset.train_data[train_size:]
+dataloaders = {x: torch.utils.data.DataLoader(
+    train_data if x=='train' else valid_data, batch_size=1, shuffle=True, num_workers=1) for x in ['train', 'val']}
+dataset_sizes = {'train': train_size, 'val' : dataset_size-train_size}
+# todo load test set
+# image_dataset = datasets.CIFAR10('.',transform=torchvision.transforms.Resize((224,224)),train=False,download=True)
+image_dataset = datasets.CIFAR10('.',transform=data_transforms,train=False,download=True)
+# dataloader_test = torch.utils.data.DataLoader(image_dataset, batch_size=4, shuffle=True, num_workers=4)
+dataloader_test = torch.utils.data.DataLoader(image_dataset, batch_size=1, shuffle=True, num_workers=1)
 
 device = "cpu"
 
-
-# def imshow(inp, title=None):
-#     """Imshow for Tensor."""
-#     inp = inp.numpy().transpose((1, 2, 0))
-#     mean = np.array([0.485, 0.456, 0.406])
-#     std = np.array([0.229, 0.224, 0.225])
-#     inp = std * inp + mean
-#     inp = np.clip(inp, 0, 1)
-#     plt.imshow(inp)
-#     if title is not None:
-#         plt.title(title)
-#     plt.pause(0.001)  # pause a bit so that plots are updated
-
-
 # Get a batch of training data
-# inputs, classes = next(iter(dataloaders['train']))
 inputs = next(iter(dataloaders['train']))
 
 #### todo ERROR: torchvision.transforms.Resize doesn't resize  input images. continue with the orig dataset instead of cifar for the meanwhile
@@ -99,7 +96,7 @@ out = torchvision.utils.make_grid(inputs[0])
 
 # imshow(out, title=[class_names[x] for x in classes])
 
-def train_model(model, mode_name, criterion, optimizer, scheduler, num_epochs):
+def train_model(dataloaders, model, mode_name, criterion, optimizer, scheduler, num_epochs):
     # since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -298,6 +295,16 @@ print('Test set: Average loss: {:.4f}, Accuracy: {:.0f}%'.format(test_avg_loss, 
 
 
 
+epocs_list=range(nepocs)
+plt.plot(epocs_list, epoch_losses['train'], 'red', epocs_list, epoch_losses['val'], 'green', linewidth=1, markersize=1)
+plt.xlabel("epocs")
+plt.savefig("loss.model_{}.phase_train_and_val.png".format(mode_name))
+plt.clf()
+
+label_list, pred_list, epoch_loss, epoch_acc = test(dataloader_test, model_conv)
+print('model:{} phasse:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name,"test", epoch_loss, epoch_acc))
+print("confusion matrix of {}:\n{}".format(mode_name,confusion_matrix(label_list, pred_list)))
+
 
 # visualize_model(model_conv)
 epocs_list=range(nepocs)
@@ -314,8 +321,6 @@ plt.clf()
 
 
 # ResNet as fixed feature extractor
-
-
 mode_name = "resnet-18"
 model_conv = torchvision.models.resnet18(pretrained=True)
 for param in model_conv.parameters():
@@ -332,7 +337,7 @@ optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 
 # Decay LR by a factor of 0.1 every 7 epochs
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
-model_conv, epoch_losses = train_model(model_conv, mode_name, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=nepocs)
+model_conv, epoch_losses = train_model(dataloaders, model_conv, mode_name, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=nepocs)
 
 # visualize_model(model_conv)
 epocs_list=range(nepocs)
