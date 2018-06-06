@@ -20,6 +20,8 @@ from torch import nn, optim
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.utils.data.sampler import SubsetRandomSampler
+import logging
+logging.basicConfig(filename="nn.log",level=logging.DEBUG)
 
 
 data_transform = transforms.Compose([
@@ -28,10 +30,10 @@ data_transform = transforms.Compose([
 ])
 
 valid_ratio = .2
-batch_size = 128
-num_workers = 128
+batch_size = 64 
+num_workers = 64 
 nclasses = 10
-nepocs = 1
+nepocs = 5 
 
 image_dataset = datasets.CIFAR10('.',transform=data_transform, download=True)
 image_test = datasets.CIFAR10('.',transform=data_transform, train=False, download=True)
@@ -46,25 +48,36 @@ validation_idx = np.random.choice(indices, size=dataset_sizes['val'], replace=Fa
 train_idx = list(set(indices) - set(validation_idx))
 
 dataloaders = {'train': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
-                                                    sampler=SubsetRandomSampler(train_idx),
-                                                    num_workers=num_workers),
-               'val': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
-                                                    sampler=SubsetRandomSampler(validation_idx),
-                                                    num_workers=num_workers),
-               'test': torch.utils.data.DataLoader(image_test, batch_size=batch_size,
-                                                   num_workers=num_workers)}
+                                                   sampler=SubsetRandomSampler(train_idx),
+                                                   num_workers=num_workers),
+              'val': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
+                                                   sampler=SubsetRandomSampler(validation_idx),
+                                                   num_workers=num_workers),
+              'test': torch.utils.data.DataLoader(image_test, batch_size=batch_size,
+                                                  num_workers=num_workers)}
+
+# dataloaders = {'train': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
+#                                                     sampler=SubsetRandomSampler(train_idx[:int(len(train_idx)/10)]),
+#                                                     num_workers=num_workers),
+#                'val': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
+#                                                     sampler=SubsetRandomSampler(validation_idx[:int(len(validation_idx)/10)]),
+#                                                     num_workers=num_workers),
+#                'test': torch.utils.data.DataLoader(image_test, batch_size=batch_size,
+#                                                    sampler=SubsetRandomSampler(list(range(3000))),
+#                                                    num_workers=num_workers)}
+
 device = "cpu"
 inputs = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs[0])
 
 def train_model(dataloaders, model, mode_name, criterion, optimizer, scheduler, num_epochs):
-
+    logging.debug("started training")
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
     epoch_losses = {'train':[], 'val':[]}
 
     for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        logging.debug('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
         # Each epoch has a training and validation phase
@@ -72,14 +85,18 @@ def train_model(dataloaders, model, mode_name, criterion, optimizer, scheduler, 
             if phase == 'train':
                 scheduler.step()
                 model.train()  # Set model to training mode
+                logging.debug("training phase")
             else:
                 model.eval()   # Set model to evaluate mode
-
+                logging.debug("validation phase")
             running_loss = 0.0
             running_corrects = 0
 
+            i=0
             # Iterate over data.
             for inputs, labels in dataloaders[phase]:
+                i+=1
+                logging.debug("example {}".format(i)) 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
@@ -106,7 +123,7 @@ def train_model(dataloaders, model, mode_name, criterion, optimizer, scheduler, 
 
             epoch_losses[phase].append(epoch_loss)
 
-            print('model:{} phase:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name, phase, epoch_loss, epoch_acc))
+            logging.debug('model:{} phase:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name, phase, epoch_loss, epoch_acc))
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
@@ -121,11 +138,15 @@ def train_model(dataloaders, model, mode_name, criterion, optimizer, scheduler, 
     return model, epoch_losses
 
 def test(dataloader_test, model):
+    logging.debug("testing")
     running_loss = 0.0
     running_corrects = 0
     label_list = []
     pred_list = []
+    i=0
     for inputs, labels in dataloader_test:
+        i+=1
+        logging.debug("example {}".format(i))
         outputs = model(inputs)
         _, preds = torch.max(outputs, 1)
         loss = criterion(outputs, labels)
@@ -156,6 +177,33 @@ plt.xlabel("epocs")
 plt.savefig("loss.model_{}.phase_train_and_val.png".format(mode_name))
 plt.clf()
 # print final resnet-18 loss & acc
-label_list, pred_list, epoch_loss, epoch_acc = test(dataloader_test, model_conv)
-print('model:{} phasse:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name,"test", epoch_loss, epoch_acc))
-print("confusion matrix of {}:\n{}".format(mode_name,confusion_matrix(label_list, pred_list)))
+label_list, pred_list, epoch_loss, epoch_acc = test(dataloaders['test'], model_conv)
+logging.debug('model:{} phasse:{} Loss: {:.4f} Acc: {:.4f}'.format(mode_name,"test", epoch_loss, epoch_acc))
+logging.debug("confusion matrix of {}:\n{}".format(mode_name,confusion_matrix(label_list, pred_list)))
+
+# # my net
+# import torch.nn as nn
+# import torch.nn.functional as F
+#
+#
+# class Net(nn.Module):
+#     def __init__(self):
+#         super(Net, self).__init__()
+#         self.conv1 = nn.Conv2d(3, 6, 5)
+#         self.pool = nn.MaxPool2d(2, 2)
+#         self.conv2 = nn.Conv2d(6, 16, 5)
+#         self.fc1 = nn.Linear(16 * 5 * 5, 120)
+#         self.fc2 = nn.Linear(120, 84)
+#         self.fc3 = nn.Linear(84, 10)
+#
+#     def forward(self, x):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = x.view(-1, 16 * 5 * 5)
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         x = self.fc3(x)
+#         return x
+#
+#
+# net = Net()
