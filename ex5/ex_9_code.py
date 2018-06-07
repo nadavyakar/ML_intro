@@ -30,8 +30,8 @@ data_transform = transforms.Compose([
 ])
 
 valid_ratio = .2
-batch_size = 64 
-num_workers = 64 
+batch_size = 32 
+num_workers = batch_size 
 nclasses = 10
 nepocs = 5 
 
