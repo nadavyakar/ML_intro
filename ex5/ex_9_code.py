@@ -123,19 +123,6 @@ def test(dataloader_test, model,criterion):
         running_corrects += torch.sum(preds == labels.data)
     testset_size = len(dataloader_test.dataset)
     return label_list, pred_list, running_loss / testset_size, running_corrects.double() / testset_size
-# def test_and_validate(dataset_loader, model, ndataset=None, return_pred=False):
-#     model.eval()
-#     if ndataset is None:
-#         ndataset = len(dataset_loader.dataset)
-#     for data, target in dataset_loader:
-#         output = model(data)
-#         loss += F.nll_loss(output, target, size_average=False).item()
-#         pred = output.data.max(1, keepdim=True)[1]
-#         if return_pred:
-#             pred_list+=[x.item() for x in pred]
-#         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
-#     return loss/ ndataset, 100. * correct / ndataset, pred_list
-
 def run_model(mode_name, device, dataloaders, nepocs, nclasses, model_conv,optimizer_conv, dataset_sizes):
     criterion = nn.CrossEntropyLoss()
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
@@ -189,77 +176,6 @@ def run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes):
     #                                          shuffle=False, num_workers=2)
     # dataloaders ={'train':trainloader,'val':valloader,'test':testloader}
     return run_model(mode_name, device, dataloaders, nepocs, nclasses, net, optimizer, dataset_sizes)
-    # net = Net()
-    #
-    # transform = transforms.Compose(
-    #     [transforms.ToTensor(),
-    #      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    #
-    # trainset = torchvision.datasets.CIFAR10(root='.', train=True,
-    #                                         download=True, transform=transform)
-    # trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-    #                                           shuffle=True, num_workers=2)
-    # # trainloader = torch.utils.data.DataLoader(trainset, batch_size=1, sampler = SubsetRandomSampler(list(range(100))),
-    # #                                            num_workers=1)
-    #
-    # testset = torchvision.datasets.CIFAR10(root='.', train=False,
-    #                                        download=True, transform=transform)
-    # testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-    #                                          shuffle=False, num_workers=2)
-    # # testloader = torch.utils.data.DataLoader(testset, batch_size=1, sampler = SubsetRandomSampler(list(range(100))),
-    # #                                           num_workers=1)
-    #
-    # classes = ('plane', 'car', 'bird', 'cat',
-    #            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-    #
-    # import torch.optim as optim
-    #
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    #
-    # for epoch in range(2):  # loop over the dataset multiple times
-    #
-    #     running_loss = 0.0
-    #     for i, data in enumerate(trainloader, 0):
-    #         # get the inputs
-    #         inputs, labels = data
-    #
-    #         # zero the parameter gradients
-    #         optimizer.zero_grad()
-    #
-    #         # forward + backward + optimize
-    #         outputs = net(inputs)
-    #         loss = criterion(outputs, labels)
-    #         loss.backward()
-    #         optimizer.step()
-    #
-    #         # print statistics
-    #         running_loss += loss.item()
-    #         if i % 2000 == 1999:  # print every 2000 mini-batches
-    #             print('[%d, %5d] loss: %.3f' %
-    #                   (epoch + 1, i + 1, running_loss / 2000))
-    #             running_loss = 0.0
-    #
-    # print('Finished Training')
-    #
-    # # print images
-    # # print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
-    # class_correct = list(0. for i in range(10))
-    # class_total = list(0. for i in range(10))
-    # with torch.no_grad():
-    #     for data in testloader:
-    #         images, labels = data
-    #         outputs = net(images)
-    #         _, predicted = torch.max(outputs, 1)
-    #         c = (predicted == labels).squeeze()
-    #         for i in range(4):
-    #             label = labels[i]
-    #             class_correct[label] += c[i].item()
-    #             class_total[label] += 1
-    # for i in range(10):
-    #     print('Accuracy of %5s : %2d %%' % (
-    #         classes[i], 100 * class_correct[i] / class_total[i]))
-    # # return epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list
 def visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list):
     epocs_list=range(nepocs)
     plt.plot(epocs_list, epoch_losses_train_and_valid['train'], 'red', epocs_list, epoch_losses_train_and_valid['val'], 'green', linewidth=1, markersize=1)
@@ -273,16 +189,19 @@ valid_ratio = .2
 batch_size = 32
 num_workers = batch_size
 nclasses = 10
-nepocs = 1
 device = "cpu"
-# # ResNet as fixed feature extractor
-# mode_name = "resnet-18_2"
-# dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.Resize(224), transforms.ToTensor()]), valid_ratio)
-# epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_resnet(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
-# visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
 # my net
 mode_name = "my net"
-nepocs=1
+nepocs=200
 dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]), valid_ratio)
 epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
+visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
+with open("test.pred", 'w') as f:
+    for pred in pred_list:
+        f.write("{}\n".format(pred))
+# ResNet as fixed feature extractor
+nepocs = 1
+mode_name = "resnet-18_2"
+dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.Resize(224), transforms.ToTensor()]), valid_ratio)
+epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_resnet(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
 visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
