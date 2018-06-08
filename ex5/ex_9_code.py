@@ -161,20 +161,6 @@ def run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes):
             return x
     net = Net()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-    # trainset = torchvision.datasets.CIFAR10(root='.', train=True,
-    #                                         download=True, transform=transform)
-    # trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-    #                                           shuffle=True, num_workers=2)
-    # valset = torchvision.datasets.CIFAR10(root='.', train=True,
-    #                                         download=True, transform=transform)
-    # valloader = torch.utils.data.DataLoader(valset, batch_size=4,
-    #                                           shuffle=True, num_workers=2)
-    # testset = torchvision.datasets.CIFAR10(root='.', train=False,
-    #                                        download=True, transform=transform)
-    # testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-    #                                          shuffle=False, num_workers=2)
-    # dataloaders ={'train':trainloader,'val':valloader,'test':testloader}
     return run_model(mode_name, device, dataloaders, nepocs, nclasses, net, optimizer, dataset_sizes)
 def visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list):
     epocs_list=range(nepocs)
@@ -193,12 +179,12 @@ device = "cpu"
 # my net
 mode_name = "my net"
 nepocs=200
-dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]), valid_ratio)
-epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
-visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
-with open("test.pred", 'w') as f:
-    for pred in pred_list:
-        f.write("{}\n".format(pred))
+#dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]), valid_ratio)
+#epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
+#visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
+#with open("test.pred", 'w') as f:
+#    for pred in pred_list:
+#        f.write("{}\n".format(pred))
 # ResNet as fixed feature extractor
 nepocs = 1
 mode_name = "resnet-18_2"

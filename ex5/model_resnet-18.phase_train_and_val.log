@@ -8155,6 +8155,7 @@ DEBUG:root:example 311
 DEBUG:root:example 312
 DEBUG:root:example 313
 DEBUG:root:model:resnet-18 phasse:test Loss: 18.9881 Acc: 25.5623
+actual test acc: 0.8000999 loss: 0.59432753
 DEBUG:root:confusion matrix of resnet-18:
 [[858   8  22  17   6   1   6  10  58  14]
  [ 26 891   3   6   0   2   6   4  22  40]
