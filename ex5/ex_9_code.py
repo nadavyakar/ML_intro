@@ -35,25 +35,6 @@ def init_data(data_transform, valid_ratio):
     inputs = next(iter(dataloaders['train']))
     out = torchvision.utils.make_grid(inputs[0])
     return dataloaders, dataset_sizes
-    # dataloaders = {'train': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
-    #                                                     sampler=SubsetRandomSampler(train_idx[:int(len(train_idx)/10)]),
-    #                                                     num_workers=num_workers),
-    #                'val': torch.utils.data.DataLoader(image_dataset, batch_size=batch_size,
-    #                                                     sampler=SubsetRandomSampler(validation_idx[:int(len(validation_idx)/10)]),
-    #                                                     num_workers=num_workers),
-    #                'test': torch.utils.data.DataLoader(image_test, batch_size=batch_size,
-    #                                                    sampler=SubsetRandomSampler(list(range(3000))),
-    #                                                    num_workers=num_workers)}
-
-    # dataloaders = {'train': torch.utils.data.DataLoader(image_dataset, batch_size=2,
-    #                                                     sampler=SubsetRandomSampler(train_idx[:2]),
-    #                                                     num_workers=2),
-    #                'val': torch.utils.data.DataLoader(image_dataset, batch_size=2,
-    #                                                     sampler=SubsetRandomSampler(validation_idx[:2]),
-    #                                                     num_workers=2),
-    #                'test': torch.utils.data.DataLoader(image_test, batch_size=2,
-    #                                                    sampler=SubsetRandomSampler(list(range(2))),
-    #                                                    num_workers=2)}
 def train_model(dataloaders, model, mode_name, criterion, optimizer, scheduler, num_epochs, device, dataset_sizes):
     logging.debug("started training")
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -144,17 +125,17 @@ def run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes):
     class Net(nn.Module):
         def __init__(self):
             super(Net, self).__init__()
-            self.conv1 = nn.Conv2d(3, 6, 5)
+            self.conv1 = nn.Conv2d(3, 20, 5)
             self.pool = nn.MaxPool2d(2, 2)
-            self.conv2 = nn.Conv2d(6, 16, 5)
-            self.fc1 = nn.Linear(16 * 5 * 5, 120)
+            self.conv2 = nn.Conv2d(20, 30, 5)
+            self.fc1 = nn.Linear(30 * 5 * 5, 120)
             self.fc2 = nn.Linear(120, 84)
             self.fc3 = nn.Linear(84, nclasses)
 
         def forward(self, x):
             x = self.pool(F.relu(self.conv1(x)))
             x = self.pool(F.relu(self.conv2(x)))
-            x = x.view(-1, 16 * 5 * 5)
+            x = x.view(-1, 30 * 5 * 5)
             x = F.relu(self.fc1(x))
             x = F.relu(self.fc2(x))
             x = self.fc3(x)
@@ -177,17 +158,17 @@ num_workers = batch_size
 nclasses = 10
 device = "cpu"
 # my net
-mode_name = "my net"
-nepocs=200
-#dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]), valid_ratio)
-#epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
-#visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
-#with open("test.pred", 'w') as f:
-#    for pred in pred_list:
-#        f.write("{}\n".format(pred))
+mode_name = "my_net"
+nepocs=1000
+dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]), valid_ratio)
+epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_my_net(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
+visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
+with open("test.pred", 'w') as f:
+    for pred in pred_list:
+        f.write("{}\n".format(pred))
 # ResNet as fixed feature extractor
-nepocs = 1
-mode_name = "resnet-18_2"
+nepocs = 5
+mode_name = "resnet-18"
 dataloaders, dataset_sizes = init_data(transforms.Compose([transforms.Resize(224), transforms.ToTensor()]), valid_ratio)
 epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list = run_resnet(mode_name, device, dataloaders, nepocs, nclasses, dataset_sizes)
 visualize(mode_name, epoch_losses_train_and_valid, epoch_loss_test, epoch_acc_test, label_list, pred_list)
